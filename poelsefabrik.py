@@ -18,7 +18,7 @@ def getFaces(faceCascade, grayScale):
         grayScale,
         scaleFactor=1.3,
         minNeighbors=5,
-        minSize=(50, 50),
+        minSize=(100, 100),
         flags=cv2.cv.CV_HAAR_SCALE_IMAGE
     )
     return faces
@@ -52,7 +52,7 @@ while (cap.isOpened() and frameCounter < 100):
         print "Found {0} faces in frame".format(len(faces))
         for (x, y, w, h) in faces:
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        cv2.imwrite("faces_result/f_" + frameCounter + ".png", frame)
+        cv2.imwrite("faces_result/f_{0}.png".format(frameCounter), frame)
     else:
         print "No faces in frame {0}".format(frameCounter)
     for x in xrange(0, 24):
