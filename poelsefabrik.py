@@ -8,23 +8,27 @@ import shutil
 # Get user supplied values
 videoPath = sys.argv[1]
 cascPath = sys.argv[2]
-resultPath = "faces_result"
+resultDirPath = "faces_result"
 
+scaleFactorValue=1.3
+minNeighborsValue=5
+sizeValue=(100, 100)
 ##############
 # face detect function
 ##############
 def getFaces(faceCascade, grayScale):
     faces = faceCascade.detectMultiScale(
         grayScale,
-        scaleFactor=1.3,
-        minNeighbors=5,
-        minSize=(100, 100),
+        scaleFactor=scaleFactorValue,
+        minNeighbors=minNeighborsValue,
+        minSize=sizeValue,
         flags=cv2.CASCADE_SCALE_IMAGE
     )
     return faces
 
 
 #prepare result dir
+resultPath = "{0}/{1}_{2}_{3}_{4}".format(resultDirPath, videoPath, scaleFactorValue, minNeighborsValue, sizeValue)
 if not os.path.exists(resultPath):
     os.makedirs(resultPath)
 
@@ -60,7 +64,7 @@ while (cap.isOpened() and frameCounter < 100):
             for (ex,ey,ew,eh) in eyes:
                 cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
 
-        cv2.imwrite("faces_result/f_{0}.png".format(frameCounter), frame)
+        cv2.imwrite("{0}/f_{1}.png".format(resultPath, frameCounter), frame)
     else:
         print "No faces in frame {0}".format(frameCounter)
     for x in xrange(0, 24):
