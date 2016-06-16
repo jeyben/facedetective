@@ -10,9 +10,9 @@ videoPath = sys.argv[1]
 cascPath = sys.argv[2]
 resultDirPath = "faces_result"
 
-scaleFactorValue=1.3
+scaleFactorValue=1.1
 minNeighborsValue=5
-sizeValue=(100, 100)
+sizeValue=(50, 50)
 ##############
 # face detect function
 ##############
@@ -41,13 +41,19 @@ for the_file in os.listdir(resultPath):
         print(e)
 
 cap = cv2.VideoCapture(videoPath)
-frameCounter = 0
+
 
 faceCascade = cv2.CascadeClassifier(cascPath)
 eyesCascade = cv2.CascadeClassifier("haarcascade_eye.xml")
 
-while (cap.isOpened() and frameCounter < 100):
-    frameCounter += 1
+imageCounter=0
+frameCounter=0
+burstingMode = None
+framesInCurrentBurst = 0
+defaultSkipFrameCount=24
+
+while (cap.isOpened() and imageCounter < 2000):
+    imageCounter += 1
     ret, frame = cap.read()
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -55,7 +61,13 @@ while (cap.isOpened() and frameCounter < 100):
     faces = getFaces(faceCascade, gray)
 
     if len(faces) > 0:
-        print "Found {0} faces in frame".format(len(faces))
+        print "Found {0} faces in frame {1}".format(len(faces), frameCounter)
+        if burstingMode:
+            framesInCurrentBurst+=1
+        else:
+            burstingMode=True
+            framesInCurrentBurst=0
+
         for (x, y, w, h) in faces:
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
             faceCropGray = gray[y:y+h,x:x+w]
@@ -67,7 +79,20 @@ while (cap.isOpened() and frameCounter < 100):
         cv2.imwrite("{0}/f_{1}.png".format(resultPath, frameCounter), frame)
     else:
         print "No faces in frame {0}".format(frameCounter)
-    for x in xrange(0, 24):
+        #if no faces break any burst
+        burstingMode=None
+        framesInCurrentBurst=0
+
+    skipFramesCount=24
+    #bursting?
+    if burstingMode and framesInCurrentBurst<3:
+        skipFramesCount=1
+    else:
+        burstingMode=None
+        framesInCurrentBurst = 0
+
+    frameCounter+=skipFramesCount
+    for x in xrange(0, skipFramesCount):
         cap.grab()
 
 cap.release()
