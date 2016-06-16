@@ -19,7 +19,7 @@ def getFaces(faceCascade, grayScale):
         scaleFactor=1.3,
         minNeighbors=5,
         minSize=(100, 100),
-        flags=cv2.cv.CV_HAAR_SCALE_IMAGE
+        flags=cv2.CASCADE_SCALE_IMAGE
     )
     return faces
 
@@ -39,19 +39,27 @@ for the_file in os.listdir(resultPath):
 cap = cv2.VideoCapture(videoPath)
 frameCounter = 0
 
+faceCascade = cv2.CascadeClassifier(cascPath)
+eyesCascade = cv2.CascadeClassifier("haarcascade_eye.xml")
+
 while (cap.isOpened() and frameCounter < 100):
     frameCounter += 1
     ret, frame = cap.read()
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     # Detect faces in the image
-    faceCascade = cv2.CascadeClassifier(cascPath)
     faces = getFaces(faceCascade, gray)
 
     if len(faces) > 0:
         print "Found {0} faces in frame".format(len(faces))
         for (x, y, w, h) in faces:
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            faceCropGray = gray[y:y+h,x:x+w]
+            roi_color = frame[y:y+h,x:x+w]
+            eyes = eyesCascade.detectMultiScale(faceCropGray)
+            for (ex,ey,ew,eh) in eyes:
+                cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+
         cv2.imwrite("faces_result/f_{0}.png".format(frameCounter), frame)
     else:
         print "No faces in frame {0}".format(frameCounter)
