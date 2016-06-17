@@ -8,23 +8,27 @@ import shutil
 # Get user supplied values
 videoPath = sys.argv[1]
 cascPath = sys.argv[2]
-resultPath = "faces_result"
+resultDirPath = "faces_result"
 
+scaleFactorValue=1.1
+minNeighborsValue=5
+sizeValue=(30, 30)
 ##############
 # face detect function
 ##############
 def getFaces(faceCascade, grayScale):
     faces = faceCascade.detectMultiScale(
         grayScale,
-        scaleFactor=1.3,
-        minNeighbors=5,
-        minSize=(100, 100),
+        scaleFactor=scaleFactorValue,
+        minNeighbors=minNeighborsValue,
+        minSize=sizeValue,
         flags=cv2.CASCADE_SCALE_IMAGE
     )
     return faces
 
 
 #prepare result dir
+resultPath = "{0}/{1}_{2}_{3}_{4}".format(resultDirPath, videoPath, scaleFactorValue, minNeighborsValue, sizeValue)
 if not os.path.exists(resultPath):
     os.makedirs(resultPath)
 
@@ -39,13 +43,17 @@ for the_file in os.listdir(resultPath):
 cap = cv2.VideoCapture(videoPath)
 frameCounter = 0
 matches = 0
-targetMatches = 5
+targetMatches = 11
+imageCounter=0
+burstingMode = None
+framesInCurrentBurst = 0
+defaultSkipFrameCount=24 * 2 
 
 faceCascade = cv2.CascadeClassifier(cascPath)
 eyesCascade = cv2.CascadeClassifier("haarcascade_eye.xml")
 
 while (cap.isOpened() and matches < targetMatches):
-    frameCounter += 1
+    imageCounter += 1
     ret, frame = cap.read()
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -53,7 +61,14 @@ while (cap.isOpened() and matches < targetMatches):
     faces = getFaces(faceCascade, gray)
     goodFaces = 0
     if len(faces) > 0:
-        print "Found {0} faces in frame".format(len(faces))
+        print "Found {0} faces in frame {1}".format(len(faces), frameCounter)
+        if burstingMode:
+            framesInCurrentBurst+=1
+        else:
+            burstingMode=True
+            framesInCurrentBurst=0
+            matches += 1
+
         for (x, y, w, h) in faces:
             #cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
             faceCropGray = gray[y:y+h,x:x+w]
@@ -65,12 +80,25 @@ while (cap.isOpened() and matches < targetMatches):
             
             #for (ex,ey,ew,eh) in eyes:
             #    cv2.rectangle(faceCropColor,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
-
         if(goodFaces > 0):
-            cv2.imwrite("faces_result/f_{0}.png".format(frameCounter), frame)
+            cv2.imwrite("{0}/f_{1}.png".format(resultPath, frameCounter), frame)
+
     else:
         print "No faces in frame {0}".format(frameCounter)
-    for x in xrange(0, 24):
+        #if no faces break any burst
+        burstingMode=None
+        framesInCurrentBurst=0
+
+    skipFramesCount= defaultSkipFrameCount
+    #bursting?
+    if burstingMode and framesInCurrentBurst<3:
+        skipFramesCount=1
+    else:
+        burstingMode=None
+        framesInCurrentBurst = 0
+
+    frameCounter+=skipFramesCount
+    for x in xrange(0, skipFramesCount):
         cap.grab()
 
 cap.release()
